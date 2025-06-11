@@ -1,15 +1,17 @@
+import os
 import asyncio
 import aiohttp
-from env_manager import get_stability_key
+from dotenv import load_dotenv
 import logging
 
 logger = logging.getLogger(__name__)
 
-# 환경 변수 로드 (캐시된 값 사용)
-STABILITY_API_KEY = get_stability_key()
+# 환경 변수 로드
+load_dotenv()
+STABILITY_API_KEY = os.getenv("STABILITY_API_KEY")
 
 if not STABILITY_API_KEY:
-    logger.warning("⚠️ STABILITY_API_KEY가 환경변수에 설정되지 않았습니다.")
+    print("⚠️ STABILITY_API_KEY가 환경변수에 설정되지 않았습니다.")
 
 async def generate_stability_image(prompt: str, image_attachment=None, strength: float = 0.7) -> bytes:
     """Stability AI 이미지 생성 (text-to-image 또는 image-to-image)"""
@@ -21,10 +23,10 @@ async def generate_stability_image(prompt: str, image_attachment=None, strength:
         url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
         if image_attachment:
             mode = "image-to-image"
-            logger.info(f"Starting Stability AI image-to-image generation with strength {strength}...")
+            print(f"Starting Stability AI image-to-image generation with strength {strength}...")
         else:
             mode = "text-to-image"
-            logger.info(f"Starting Stability AI text-to-image generation...")
+            print(f"Starting Stability AI text-to-image generation...")
         
         headers = {
             "authorization": f"Bearer {STABILITY_API_KEY}",
@@ -62,11 +64,11 @@ async def generate_stability_image(prompt: str, image_attachment=None, strength:
             ) as response:
                 if response.status == 200:
                     image_data = await response.read()
-                    logger.info(f"Stability AI {mode} generation successful ({len(image_data)} bytes)")
+                    print(f"Stability AI {mode} generation successful ({len(image_data)} bytes)")
                     return image_data
                 else:
                     error_text = await response.text()
-                    logger.error(f"Stability AI error {response.status}: {error_text}")
+                    print(f"Stability AI error {response.status}: {error_text}")
                     
                     # 상세한 에러 메시지
                     if response.status == 400:
@@ -87,8 +89,8 @@ async def generate_stability_image(prompt: str, image_attachment=None, strength:
                         return f"❌ Stability AI 오류 (코드: {response.status})"
 
     except asyncio.TimeoutError:
-        logger.warning("Stability AI timeout")
+        print("Stability AI timeout")
         return "⏰ 이미지 생성 시간이 초과되었습니다. 다시 시도해주세요."
     except Exception as e:
-        logger.error(f"Stability AI error: {e}")
+        print(f"Stability AI error: {e}")
         return f"이미지 생성 중 오류가 발생했습니다: {str(e)}"

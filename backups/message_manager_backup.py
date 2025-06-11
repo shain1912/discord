@@ -2,19 +2,20 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, Tuple, Optional, Callable, Any
 import logging
-from env_manager import get_env_int
+from dotenv import load_dotenv
+import os
 from dataclasses import dataclass
 from enum import Enum
 
-logger = logging.getLogger(__name__)
+load_dotenv()
 
-# 환경 변수에서 설정값 로드 (캐시된 값 사용)
-CHAT_DAILY_LIMIT = get_env_int("CHAT_DAILY_LIMIT", 1000)
-IMAGE_DAILY_LIMIT = get_env_int("IMAGE_DAILY_LIMIT", 50)
-VIDEO_DAILY_LIMIT = get_env_int("VIDEO_DAILY_LIMIT", 10)
-CHAT_COOLDOWN = get_env_int("CHAT_COOLDOWN", 3)
-IMAGE_COOLDOWN = get_env_int("IMAGE_COOLDOWN", 3)
-VIDEO_COOLDOWN = get_env_int("VIDEO_COOLDOWN", 10)
+logger = logging.getLogger(__name__)
+CHAT_DAILY_LIMIT = int(os.getenv("CHAT_DAILY_LIMIT"))
+IMAGE_DAILY_LIMIT = int(os.getenv("IMAGE_DAILY_LIMIT"))
+VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT"))
+CHAT_COOLDOWN = int(os.getenv("CHAT_COOLDOWN"))
+IMAGE_COOLDOWN = int(os.getenv("IMAGE_COOLDOWN"))
+VIDEO_COOLDOWN = int(os.getenv("VIDEO_COOLDOWN"))
 
 class RequestType(Enum):
     CHAT = "chat"
@@ -32,7 +33,7 @@ class QueuedRequest:
     priority: int = 1  # 1=highest, 5=lowest
 
 class EnhancedRequestManager:
-    """향상된 요청 관리자 - 큐 시스템과 동시성 제어 + Docker 최적화"""
+    """향상된 요청 관리자 - 큐 시스템과 동시성 제어"""
     
     def __init__(self):
         # 기존 기능
@@ -62,7 +63,7 @@ class EnhancedRequestManager:
             RequestType.VIDEO: []
         }
         
-        # 레이트 리미트 설정 (환경 변수에서 로드)
+        # 레이트 리미트 설정
         self.rate_limits = {
             'chat': {'cooldown': CHAT_COOLDOWN, 'daily_limit': CHAT_DAILY_LIMIT},
             'image': {'cooldown': IMAGE_COOLDOWN, 'daily_limit': IMAGE_DAILY_LIMIT},
@@ -76,11 +77,9 @@ class EnhancedRequestManager:
             'queue_sizes': {},
             'active_workers': 0
         }
-        
-        logger.info(f"EnhancedRequestManager initialized with limits: {self.rate_limits}")
 
     async def can_make_request(self, user_id: int, request_type: str) -> Tuple[bool, str]:
-        """사용자가 요청을 할 수 있는지 확인"""
+        """사용자가 요청을 할 수 있는지 확인 (기존 로직 유지)"""
         async with self.lock:
             current_time = datetime.now()
             
@@ -242,7 +241,7 @@ class EnhancedRequestManager:
         }
 
     async def get_user_stats(self, user_id: int) -> Dict[str, any]:
-        """사용자 통계 정보 반환"""
+        """사용자 통계 정보 반환 (기존 로직 유지)"""
         if user_id not in self.user_daily_counts:
             return {"message": "사용자 데이터가 없습니다."}
         
@@ -258,5 +257,5 @@ class EnhancedRequestManager:
         
         return stats
 
-# 하위 호환성을 위한 별칭 - Enhanced 버전을 기본값으로 사용
+# 하위 호환성을 위한 별칭
 RequestManager = EnhancedRequestManager

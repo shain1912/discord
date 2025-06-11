@@ -24,8 +24,8 @@ async def setup_video_commands(bot):
                 await interaction.response.send_message(f"⚠️ {message}", ephemeral=True)
                 return
 
-            # 초기 응답 전송 (ephemeral) - 실제 줄바꿈 사용
-            processing_msg = "🎬 MiniMax AI로 비디오 생성 중... (최대 5분 소요)\n⏰ 비디오 생성은 시간이 오래 걸립니다. 잠시만 기다려주세요!\n📹 고품질 비디오를 제작하고 있습니다..."
+            # 초기 응답 전송 (ephemeral)
+            processing_msg = "🎬 MiniMax AI로 비디오 생성 중... (최대 5분 소요)\\n⏰ 비디오 생성은 시간이 오래 걸립니다. 잠시만 기다려주세요!\\n📹 고품질 비디오를 제작하고 있습니다..."
             await interaction.response.send_message(processing_msg, ephemeral=True)
 
             # 주기적 업데이트 메시지 전송을 위한 태스크 생성

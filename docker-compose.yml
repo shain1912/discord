@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  discord-bot:
+    build: .
+    container_name: discord-ai-bot
+    restart: unless-stopped
+    environment:
+      # Discord Bot Configuration
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      
+      # AI Service API Keys
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
+      - STABILITY_API_KEY=${STABILITY_API_KEY}
+      
+      # Rate Limiting Settings
+      - CHAT_COOLDOWN=${CHAT_COOLDOWN:-3}
+      - IMAGE_COOLDOWN=${IMAGE_COOLDOWN:-3}
+      - VIDEO_COOLDOWN=${VIDEO_COOLDOWN:-10}
+      
+      # Daily Limits
+      - CHAT_DAILY_LIMIT=${CHAT_DAILY_LIMIT:-1000}
+      - IMAGE_DAILY_LIMIT=${IMAGE_DAILY_LIMIT:-50}
+      - VIDEO_DAILY_LIMIT=${VIDEO_DAILY_LIMIT:-10}
+      
+      # Bot Settings
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Docker 환경임을 명시
+      - DOCKER_ENV=true
+    
+    # 볼륨 마운트 (로그 파일 등이 필요한 경우)
+    volumes:
+      - ./logs:/app/logs
+    
+    # 네트워크 설정 (필요한 경우)
+    # networks:
+    #   - discord-bot-network
+
+# 네트워크 정의 (필요한 경우)
+# networks:
+#   discord-bot-network:
+#     driver: bridge
+
+# 볼륨 정의 (필요한 경우)
+volumes:
+  logs:

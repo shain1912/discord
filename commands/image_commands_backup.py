@@ -41,11 +41,11 @@ async def setup_image_commands(bot):
                     )
                     return
 
-            # 이미지 생성 시작 (ephemeral) - 실제 줄바꿈 사용
+            # 이미지 생성 시작 (ephemeral)
             if 이미지:
-                processing_msg = f"🎨 이미지 변환 중입니다... (최대 60초 소요)\n🔄 업로드된 이미지를 설명에 따라 변환합니다!\n💡 팁: 간단한 설명일수록 빠르게 생성됩니다!"
+                processing_msg = f"🎨 이미지 변환 중입니다... (최대 60초 소요)\\n🔄 업로드된 이미지를 설명에 따라 변환합니다!\\n💡 팁: 간단한 설명일수록 빠르게 생성됩니다!"
             else:
-                processing_msg = f"🎨 이미지 생성 중입니다... (최대 60초 소요)\n✨ 설명에 따라 새로운 이미지를 생성합니다!\n💡 팁: 간단한 설명일수록 빠르게 생성됩니다!"
+                processing_msg = f"🎨 이미지 생성 중입니다... (최대 60초 소요)\\n✨ 설명에 따라 새로운 이미지를 생성합니다!\\n💡 팁: 간단한 설명일수록 빠르게 생성됩니다!"
             
             await interaction.response.send_message(processing_msg, ephemeral=True)
 
@@ -116,13 +116,13 @@ async def setup_image_commands(bot):
                     )
                     return
 
-            # 초기 응답 전송 (ephemeral) - 실제 줄바꿈 사용
+            # 초기 응답 전송 (ephemeral)
             if 이미지:
                 # Image-to-Image 모드
-                processing_msg = f"✨ Stability AI 이미지 변환 중... (강도: {강도})\n🔄 업로드된 이미지를 설명에 따라 변환합니다!\n📊 강도 {int(강도*100)}% - 높을수록 원본 이미지 무시"
+                processing_msg = f"✨ Stability AI 이미지 변환 중... (강도: {강도})\\n🔄 업로드된 이미지를 설명에 따라 변환합니다!\\n📊 강도 {int(강도*100)}% - 높을수록 원본 이미지 무시"
             else:
                 # Text-to-Image 모드
-                processing_msg = "⚡ Stability AI로 이미지 생성 중... (최대 45초)\n✨ 고품질 이미지를 빠르게 생성합니다!"
+                processing_msg = "⚡ Stability AI로 이미지 생성 중... (최대 45초)\\n✨ 고품질 이미지를 빠르게 생성합니다!"
             
             await interaction.response.send_message(processing_msg, ephemeral=True)
 

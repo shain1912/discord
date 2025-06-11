@@ -4,8 +4,8 @@ from discord import app_commands
 from typing import Optional
 import logging
 
-# 로컬 모듈 import - Enhanced 버전 사용
-from request_manager_enhanced import EnhancedRequestManager
+# 로컬 모듈 import
+from request_manager import RequestManager
 from utils import split_message
 
 class MyBot(commands.Bot):
@@ -17,8 +17,8 @@ class MyBot(commands.Bot):
         
         super().__init__(command_prefix="!", intents=intents)
         
-        # Enhanced 매니저 초기화
-        self.request_manager = EnhancedRequestManager()
+        # 매니저 초기화
+        self.request_manager = RequestManager()
         
     async def setup_hook(self):
         """봇 초기 설정"""
@@ -31,7 +31,7 @@ class MyBot(commands.Bot):
         from bot.events import setup_error_events
         await setup_error_events(self)
         
-        # Enhanced Queue processor 시작
+        # Queue processor 시작
         self.request_manager.start_queue_processor(self)
         
         # 슬래시 명령어 동기화
@@ -62,6 +62,5 @@ class MyBot(commands.Bot):
     async def close(self):
         """봇 종료 시 정리 작업"""
         print("Bot is shutting down...")
-        # Enhanced queue processor 중지
         await self.request_manager.stop_queue_processor()
         await super().close()

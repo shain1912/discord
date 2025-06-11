@@ -1,17 +1,19 @@
+import os
 import json
 import asyncio
 import aiohttp
 import base64
-from env_manager import get_minimax_key
+from dotenv import load_dotenv
 import logging
 
 logger = logging.getLogger(__name__)
 
-# 환경 변수 로드 (캐시된 값 사용)
-MINIMAX_API_KEY = get_minimax_key()
+# 환경 변수 로드
+load_dotenv()
+MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY")
 
 if not MINIMAX_API_KEY:
-    logger.warning("⚠️ MINIMAX_API_KEY가 환경변수에 설정되지 않았습니다.")
+    print("⚠️ MINIMAX_API_KEY가 환경변수에 설정되지 않았습니다.")
 
 async def generate_image(bot, prompt: str, image_attachment=None) -> str:
     """최적화된 이미지 생성 - MiniMax subject_reference 지원"""
@@ -24,7 +26,7 @@ async def generate_image(bot, prompt: str, image_attachment=None) -> str:
     # 프롬프트 최적화 (너무 길면 자르기)
     if len(prompt) > 500:
         prompt = prompt[:500] + "..."
-        logger.info(f"Prompt truncated to 500 characters for faster processing")
+        print(f"Prompt truncated to 500 characters for faster processing")
     
     try:
         url = "https://api.minimaxi.chat/v1/image_generation"
@@ -64,14 +66,14 @@ async def generate_image(bot, prompt: str, image_attachment=None) -> str:
                 "image_file": image_uri
             }]
             
-            logger.info(f"Using subject_reference with character reference")
+            print(f"Using subject_reference with character reference")
         
         headers = {
             'Authorization': f'Bearer {MINIMAX_API_KEY}',
             'Content-Type': 'application/json'
         }
         
-        logger.info(f"Starting MiniMax image generation... (timeout: 60s)")
+        print(f"Starting MiniMax image generation... (timeout: 60s)")
         
         # 타임아웃 증가 및 재시도 메커니즘
         for attempt in range(3):  # 3번 재시도
@@ -90,37 +92,37 @@ async def generate_image(bot, prompt: str, image_attachment=None) -> str:
                             if 'data' in result and 'image_urls' in result['data']:
                                 image_urls = result['data']['image_urls']
                                 if image_urls and len(image_urls) > 0:
-                                    logger.info(f"MiniMax image generated successfully on attempt {attempt + 1}")
+                                    print(f"MiniMax image generated successfully on attempt {attempt + 1}")
                                     return image_urls[0]
                             return "이미지 URL을 찾을 수 없습니다."
                         
                         elif response.status == 429:  # Rate limit
-                            logger.warning(f"Rate limit hit, waiting {(attempt + 1) * 2} seconds...")
+                            print(f"Rate limit hit, waiting {(attempt + 1) * 2} seconds...")
                             await asyncio.sleep((attempt + 1) * 2)
                             continue
                         
                         else:
                             error_text = await response.text()
-                            logger.error(f"MiniMax API error {response.status}: {error_text}")
+                            print(f"MiniMax API error {response.status}: {error_text}")
                             if attempt == 2:  # 마지막 시도
                                 return f"이미지 생성 API 오류 (상태 코드: {response.status})"
                             
             except asyncio.TimeoutError:
-                logger.warning(f"Timeout on attempt {attempt + 1}/3")
+                print(f"Timeout on attempt {attempt + 1}/3")
                 if attempt == 2:  # 마지막 시도
                     return "⏰ 이미지 생성 시간이 초과되었습니다. \n\n해결법:\n- 더 간단한 설명으로 다시 시도해주세요\n- 잠시 후 다시 시도해주세요"
                 await asyncio.sleep(2)  # 2초 대기 후 재시도
                 continue
             
             except Exception as e:
-                logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                print(f"Attempt {attempt + 1} failed: {e}")
                 if attempt == 2:
                     return f"이미지 생성 중 오류가 발생했습니다: {str(e)}"
                 await asyncio.sleep(1)
                 continue
                 
     except Exception as e:
-        logger.error(f"Image generation error: {e}")
+        print(f"Image generation error: {e}")
         return f"이미지 생성 중 오류가 발생했습니다: {str(e)}"
 
 async def generate_video(prompt: str) -> str:
@@ -134,15 +136,15 @@ async def generate_video(prompt: str) -> str:
     # 프롬프트 최적화
     if len(prompt) > 1000:
         prompt = prompt[:1000] + "..."
-        logger.info(f"Video prompt truncated to 1000 characters")
+        print(f"Video prompt truncated to 1000 characters")
     
     try:
-        logger.info(f"Starting video generation... (timeout: 300s)")
+        print(f"Starting video generation... (timeout: 300s)")
         
         # 1단계: 비디오 생성 작업 제출
         task_id = await _submit_video_task(prompt)
         
-        logger.info(f"Video generation task submitted: {task_id}")
+        print(f"Video generation task submitted: {task_id}")
         
         # 2단계: 작업 완료까지 대기 (최대 5분)
         max_wait_time = 300  # 5분
@@ -170,12 +172,12 @@ async def generate_video(prompt: str) -> str:
             
             # 진행 상황 로그
             if attempt % 4 == 0:  # 1분마다 로그
-                logger.info(f"Video generation status: {status} (attempt {attempt + 1}/{max_attempts})")
+                print(f"Video generation status: {status} (attempt {attempt + 1}/{max_attempts})")
         
         return "⏰ 비디오 생성 시간이 초과되었습니다. 비디오 생성에는 최대 5분이 소요될 수 있습니다."
         
     except Exception as e:
-        logger.error(f"Video generation error: {e}")
+        print(f"Video generation error: {e}")
         return f"비디오 생성 중 오류가 발생했습니다: {str(e)}"
 
 async def _submit_video_task(prompt: str) -> str:
@@ -194,7 +196,7 @@ async def _submit_video_task(prompt: str) -> str:
     
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
         async with session.post(url, headers=headers, data=json.dumps(payload)) as response:
-            logger.info(f"responseStatus: {response.status}")
+            print("responseStatus:", response.status)
             if response.status == 200:
                 result = await response.json()
                 if 'task_id' in result:
@@ -203,7 +205,7 @@ async def _submit_video_task(prompt: str) -> str:
                     return "task_id를 찾을 수 없습니다."
             else:
                 error_text = await response.text()
-                logger.error(f"Video task submission error {response.status}: {error_text}")
+                print(f"Video task submission error {response.status}: {error_text}")
                 
                 if response.status == 400:
                     return "❌ 잘못된 요청입니다. 비디오 설명을 확인해주세요."
@@ -238,7 +240,7 @@ async def _query_video_status(task_id: str) -> tuple[str, str]:
                     return "", "Unknown"
                     
     except Exception as e:
-        logger.error(f"Video status query error: {e}")
+        print(f"Video status query error: {e}")
         return "", "Unknown"
 
 async def _get_video_download_url(file_id: str) -> str:
@@ -261,9 +263,9 @@ async def _get_video_download_url(file_id: str) -> str:
                         return "다운로드 URL을 찾을 수 없습니다."
                 else:
                     error_text = await response.text()
-                    logger.error(f"Video download URL error {response.status}: {error_text}")
+                    print(f"Video download URL error {response.status}: {error_text}")
                     return f"다운로드 URL 획득 실패 (코드: {response.status})"
                     
     except Exception as e:
-        logger.error(f"Video download URL error: {e}")
+        print(f"Video download URL error: {e}")
         return f"다운로드 URL 획득 중 오류: {str(e)}"

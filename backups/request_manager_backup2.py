@@ -1,38 +1,35 @@
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, Tuple, Optional, Callable, Any
+from typing import Dict, Tuple, Optional
 import logging
-from env_manager import get_env_int
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-# 환경 변수에서 설정값 로드 (캐시된 값 사용)
-CHAT_DAILY_LIMIT = get_env_int("CHAT_DAILY_LIMIT", 1000)
-IMAGE_DAILY_LIMIT = get_env_int("IMAGE_DAILY_LIMIT", 50)
-VIDEO_DAILY_LIMIT = get_env_int("VIDEO_DAILY_LIMIT", 10)
-CHAT_COOLDOWN = get_env_int("CHAT_COOLDOWN", 3)
-IMAGE_COOLDOWN = get_env_int("IMAGE_COOLDOWN", 3)
-VIDEO_COOLDOWN = get_env_int("VIDEO_COOLDOWN", 10)
-
+CHAT_DAILY_LIMIT = int(os.getenv("CHAT_DAILY_LIMIT"))
+IMAGE_DAILY_LIMIT = int(os.getenv("IMAGE_DAILY_LIMIT"))
+VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT"))
+CHAT_COOLDOWN= int(os.getenv("CHAT_COOLDOWN"))
+IMAGE_COOLDOWN= int(os.getenv("IMAGE_COOLDOWN"))
+VIDEO_COOLDOWN= int(os.getenv("VIDEO_COOLDOWN"))
 class RequestManager:
-    """향상된 요청 관리자 - Docker 최적화"""
+    """간단한 요청 관리자 클래스"""
     
     def __init__(self):
-        # 기존 기능
         self.user_cooldowns: Dict[int, Dict[str, datetime]] = {}
         self.user_daily_counts: Dict[int, Dict[str, int]] = {}
         self.user_daily_reset: Dict[int, datetime] = {}
         self.lock = asyncio.Lock()
         
-        # 레이트 리미트 설정 (환경 변수에서 로드)
+        # 레이트 리미트 설정
         self.rate_limits = {
             'chat': {'cooldown': CHAT_COOLDOWN, 'daily_limit': CHAT_DAILY_LIMIT},
             'image': {'cooldown': IMAGE_COOLDOWN, 'daily_limit': IMAGE_DAILY_LIMIT},
             'video': {'cooldown': VIDEO_COOLDOWN, 'daily_limit': VIDEO_DAILY_LIMIT}
         }
+        self.queue_processor_task: Optional[asyncio.Task] = None
         
-        logger.info(f"RequestManager initialized with limits: {self.rate_limits}")
-
     async def can_make_request(self, user_id: int, request_type: str) -> Tuple[bool, str]:
         """사용자가 요청을 할 수 있는지 확인"""
         async with self.lock:
@@ -68,8 +65,28 @@ class RequestManager:
             self.user_daily_counts[user_id][request_type] = daily_count + 1
             return True, ""
 
+    def start_queue_processor(self, bot) -> asyncio.Task:
+        """큐 프로세서 시작 (현재는 사용하지 않음)"""
+        print("Queue processor started (simplified version)")
+        return asyncio.create_task(self._dummy_processor())
+    
+    async def _dummy_processor(self):
+        """더미 프로세서"""
+        while True:
+            await asyncio.sleep(60)  # 1분마다 체크
+
+    async def stop_queue_processor(self) -> None:
+        """큐 프로세서 중지"""
+        if self.queue_processor_task:
+            self.queue_processor_task.cancel()
+            try:
+                await self.queue_processor_task
+            except asyncio.CancelledError:
+                pass
+        print("Queue processor stopped")
+
     async def get_user_stats(self, user_id: int) -> Dict[str, any]:
-        """사용자 통계 정보 반환"""
+        """사용자 통계 정보 반환 (간단 버전)"""
         if user_id not in self.user_daily_counts:
             return {"message": "사용자 데이터가 없습니다."}
         

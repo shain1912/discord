@@ -2,7 +2,6 @@ import discord
 import logging
 from dotenv import load_dotenv
 import os
-load_dotenv()
 logger = logging.getLogger(__name__)
 CHAT_DAILY_LIMIT = os.getenv("CHAT_DAILY_LIMIT")
 IMAGE_DAILY_LIMIT = os.getenv("IMAGE_DAILY_LIMIT")

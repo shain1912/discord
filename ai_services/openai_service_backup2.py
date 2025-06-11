@@ -1,16 +1,18 @@
+import os
 import asyncio
 import discord
-from env_manager import get_openai_key
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
 import logging
 
 logger = logging.getLogger(__name__)
 
-# 환경 변수 로드 (캐시된 값 사용)
-OPENAI_API_KEY = get_openai_key()
+# 환경 변수 로드
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:
-    logger.warning("⚠️ OPENAI_API_KEY가 환경변수에 설정되지 않았습니다.")
+    print("⚠️ OPENAI_API_KEY가 환경변수에 설정되지 않았습니다.")
 
 # 비동기 OpenAI 클라이언트 초기화
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -98,5 +100,5 @@ async def get_gpt_response_streaming(bot, prompt: str, interaction) -> None:
     except asyncio.TimeoutError:
         await interaction.followup.send("⏰ 응답 생성 시간이 초과되었습니다. 다시 시도해주세요.", ephemeral=True)
     except Exception as e:
-        logger.error(f"Streaming GPT error: {e}")
+        print(f"Streaming GPT error: {e}")
         await interaction.followup.send("응답 생성 중 오류가 발생했습니다.", ephemeral=True)

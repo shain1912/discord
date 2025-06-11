@@ -11,6 +11,32 @@ Discord에서 ChatGPT와 AI 이미지 생성 기능을 제공하는 간단한 �
 
 ## 🛠️ 설치 및 설정
 
+### 🐳 Docker로 빠른 시작 (추천)
+
+1. **환경변수 파일 생성**
+   ```bash
+   cp .env.docker .env
+   ```
+
+2. **환경변수 설정**
+   `.env` 파일을 열어서 실제 API 키들로 변경
+
+3. **봇 실행**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **상태 확인**
+   ```bash
+   docker-compose logs -f
+   ```
+
+> 📚 **자세한 Docker 배포 가이드**: [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) 참고
+
+---
+
+### 🐍 Python 직접 실행
+
 ### 1. 요구사항
 
 - Python 3.8 이상
