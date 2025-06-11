@@ -123,7 +123,7 @@ class LoadBalancedBot(commands.Bot):
     async def on_interaction(self, interaction: discord.Interaction):
         """로드 밸런싱 인터셉터"""
         if interaction.type != discord.InteractionType.application_command:
-            return await super().on_interaction(interaction)
+            return # await super().on_interaction(interaction)
         
         # 통계 업데이트
         self.lb_stats['total_requests'] += 1
@@ -156,7 +156,7 @@ class LoadBalancedBot(commands.Bot):
                 f"(assigned: {assigned_instance}, current: {self.instance_config['instance_id']})"
             )
             
-            return await super().on_interaction(interaction)
+            return # await super().on_interaction(interaction)
         else:
             # 무시 통계 업데이트
             self.lb_stats['ignored_requests'] += 1
