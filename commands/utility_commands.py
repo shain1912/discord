@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from env_manager import get_instance_config, get_environment_info, get_load_balancing_info, get_assigned_instance
+from env_manager import get_instance_config, get_environment_info, get_load_balancing_info, get_assigned_instance,should_handle_command
 
 async def setup_utility_commands(bot):
     """로드 밸런싱 지원 유틸리티 명령어 설정"""
@@ -9,6 +9,9 @@ async def setup_utility_commands(bot):
     @bot.tree.command(name="핑", description="봇의 응답 시간과 로드 밸런싱 정보를 확인합니다.")
     async def ping(interaction: discord.Interaction):
         """봇의 레이턴시와 로드 밸런싱 정보를 확인하는 명령어"""
+        instance_config = get_instance_config()
+        if not should_handle_command(interaction, instance_config):
+            return  # ❌ 내가 처리할 인스턴스가 아님 → 조용히 무시
         latency_ms = round(bot.latency * 1000)
         lb_stats = bot.get_load_balancing_stats()
         user_assignment = bot.get_user_assignment_info(interaction.user.id)

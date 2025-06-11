@@ -3,7 +3,7 @@ import asyncio
 from discord.ext import commands
 from discord import app_commands
 from ai_handlers import generate_video
-
+from env_manager import get_instance_config, should_handle_command
 async def setup_video_commands(bot):
     """비디오 관련 명령어 설정"""
     
@@ -15,6 +15,9 @@ async def setup_video_commands(bot):
         사용법:
         /비디오 "고양이가 공원에서 뛰어노는 모습"
         """
+        instance_config = get_instance_config()
+        if not should_handle_command(interaction, instance_config):
+            return  # ❌ 내가 처리할 인스턴스가 아님 → 조용히 무시
         try:
             # 요청 가능 여부 확인
             can_request, message = await bot.request_manager.can_make_request(

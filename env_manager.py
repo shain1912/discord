@@ -175,27 +175,28 @@ def get_api_keys_for_instance(instance_id: str = None) -> Dict[str, str]:
     }
 
 def validate_required_env() -> List[str]:
-    """필수 환경 변수 검증 (로드 밸런싱)"""
+    """자신의 인스턴스에 해당하는 필수 환경 변수만 검사"""
     missing_vars = []
-    
+
     # Discord 토큰은 필수
     if not get_env('DISCORD_TOKEN'):
         missing_vars.append('DISCORD_TOKEN')
-    
-    # 모든 인스턴스의 API 키 확인
-    total_instances = get_env_int('TOTAL_INSTANCES', 4)
-    
-    for i in range(1, total_instances + 1):
-        api_keys = get_api_keys_for_instance(str(i))
-        
-        if not api_keys['openai']:
-            missing_vars.append(f'OPENAI_API_KEY_{i}')
-        if not api_keys['minimax']:
-            missing_vars.append(f'MINIMAX_API_KEY_{i}')
-        if not api_keys['stability']:
-            missing_vars.append(f'STABILITY_API_KEY_{i}')
-    
+
+    # 현재 인스턴스의 ID
+    instance_id = get_env('INSTANCE_ID', '1')
+
+    # 해당 인스턴스의 API 키만 검사
+    api_keys = get_api_keys_for_instance(instance_id)
+
+    if not api_keys['openai']:
+        missing_vars.append(f'OPENAI_API_KEY_{instance_id}')
+    if not api_keys['minimax']:
+        missing_vars.append(f'MINIMAX_API_KEY_{instance_id}')
+    if not api_keys['stability']:
+        missing_vars.append(f'STABILITY_API_KEY_{instance_id}')
+
     return missing_vars
+
 
 def get_environment_info() -> Dict[str, any]:
     """환경 정보 조회 (로드 밸런싱 정보 포함)"""

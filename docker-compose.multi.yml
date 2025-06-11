@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Instance 1: Load Balancer (모든 기능)
@@ -7,9 +7,10 @@ services:
     container_name: discord-bot-1
     restart: unless-stopped
     environment:
+      - CHANNEL_NUMS=${CHANNEL_NUMS}
       # Discord Configuration
       - DISCORD_TOKEN=${DISCORD_TOKEN}
-      
+
       # Load Balancing Configuration
       - INSTANCE_ID=1
       - INSTANCE_TYPE=loadbalancer
@@ -17,32 +18,32 @@ services:
       - TOTAL_INSTANCES=4
       - LOAD_BALANCING_STRATEGY=user_based
       - FAILOVER_ENABLED=true
-      
+
       # API Keys for Instance 1 (전용 키 세트)
       - OPENAI_API_KEY_1=${OPENAI_API_KEY_1}
       - MINIMAX_API_KEY_1=${MINIMAX_API_KEY_1}
       - STABILITY_API_KEY_1=${STABILITY_API_KEY_1}
-      
+
       # Performance Settings (로드 밸런싱 최적화)
       - CHAT_COOLDOWN=0
       - IMAGE_COOLDOWN=0
       - VIDEO_COOLDOWN=2
-      
+
       # High Limits (인스턴스당)
       - CHAT_DAILY_LIMIT=10000
       - IMAGE_DAILY_LIMIT=800
       - VIDEO_DAILY_LIMIT=160
-      
+
       # Logging
       - LOG_LEVEL=INFO
       - DOCKER_ENV=true
-    
+
     volumes:
       - ./logs/instance1:/app/logs
-    
+
     networks:
       - discord-bot-network
-    
+
     healthcheck:
       test: ["CMD", "python", "-c", "print('healthy')"]
       interval: 30s
@@ -55,9 +56,10 @@ services:
     container_name: discord-bot-2
     restart: unless-stopped
     environment:
+      - CHANNEL_NUMS=${CHANNEL_NUMS}
       # Discord Configuration
       - DISCORD_TOKEN=${DISCORD_TOKEN}
-      
+
       # Load Balancing Configuration
       - INSTANCE_ID=2
       - INSTANCE_TYPE=loadbalancer
@@ -65,32 +67,32 @@ services:
       - TOTAL_INSTANCES=4
       - LOAD_BALANCING_STRATEGY=user_based
       - FAILOVER_ENABLED=true
-      
+
       # API Keys for Instance 2 (전용 키 세트)
       - OPENAI_API_KEY_2=${OPENAI_API_KEY_2}
       - MINIMAX_API_KEY_2=${MINIMAX_API_KEY_2}
       - STABILITY_API_KEY_2=${STABILITY_API_KEY_2}
-      
+
       # Performance Settings
       - CHAT_COOLDOWN=0
       - IMAGE_COOLDOWN=0
       - VIDEO_COOLDOWN=2
-      
+
       # High Limits
       - CHAT_DAILY_LIMIT=10000
       - IMAGE_DAILY_LIMIT=800
       - VIDEO_DAILY_LIMIT=160
-      
+
       # Logging
       - LOG_LEVEL=INFO
       - DOCKER_ENV=true
-    
+
     volumes:
       - ./logs/instance2:/app/logs
-    
+
     networks:
       - discord-bot-network
-    
+
     healthcheck:
       test: ["CMD", "python", "-c", "print('healthy')"]
       interval: 30s
@@ -103,9 +105,10 @@ services:
     container_name: discord-bot-3
     restart: unless-stopped
     environment:
+      - CHANNEL_NUMS=${CHANNEL_NUMS}
       # Discord Configuration
       - DISCORD_TOKEN=${DISCORD_TOKEN}
-      
+
       # Load Balancing Configuration
       - INSTANCE_ID=3
       - INSTANCE_TYPE=loadbalancer
@@ -113,32 +116,32 @@ services:
       - TOTAL_INSTANCES=4
       - LOAD_BALANCING_STRATEGY=user_based
       - FAILOVER_ENABLED=true
-      
+
       # API Keys for Instance 3 (전용 키 세트)
       - OPENAI_API_KEY_3=${OPENAI_API_KEY_3}
       - MINIMAX_API_KEY_3=${MINIMAX_API_KEY_3}
       - STABILITY_API_KEY_3=${STABILITY_API_KEY_3}
-      
+
       # Performance Settings
       - CHAT_COOLDOWN=0
       - IMAGE_COOLDOWN=0
       - VIDEO_COOLDOWN=2
-      
+
       # High Limits
       - CHAT_DAILY_LIMIT=10000
       - IMAGE_DAILY_LIMIT=800
       - VIDEO_DAILY_LIMIT=160
-      
+
       # Logging
       - LOG_LEVEL=INFO
       - DOCKER_ENV=true
-    
+
     volumes:
       - ./logs/instance3:/app/logs
-    
+
     networks:
       - discord-bot-network
-    
+
     healthcheck:
       test: ["CMD", "python", "-c", "print('healthy')"]
       interval: 30s
@@ -151,9 +154,10 @@ services:
     container_name: discord-bot-4
     restart: unless-stopped
     environment:
+      - CHANNEL_NUMS=${CHANNEL_NUMS}
       # Discord Configuration
       - DISCORD_TOKEN=${DISCORD_TOKEN}
-      
+
       # Load Balancing Configuration
       - INSTANCE_ID=4
       - INSTANCE_TYPE=loadbalancer
@@ -161,35 +165,35 @@ services:
       - TOTAL_INSTANCES=4
       - LOAD_BALANCING_STRATEGY=user_based
       - FAILOVER_ENABLED=true
-      - IS_PRIMARY=true  # Primary 인스턴스 (슬래시 명령어 동기화)
-      
+      - IS_PRIMARY=true # Primary 인스턴스 (슬래시 명령어 동기화)
+
       # API Keys for Instance 4 (전용 키 세트)
       - OPENAI_API_KEY_4=${OPENAI_API_KEY_4}
       - MINIMAX_API_KEY_4=${MINIMAX_API_KEY_4}
       - STABILITY_API_KEY_4=${STABILITY_API_KEY_4}
-      
+
       # Performance Settings
       - CHAT_COOLDOWN=0
       - IMAGE_COOLDOWN=0
       - VIDEO_COOLDOWN=2
-      
+
       # High Limits
       - CHAT_DAILY_LIMIT=10000
       - IMAGE_DAILY_LIMIT=800
       - VIDEO_DAILY_LIMIT=160
-      
+
       # Logging
       - LOG_LEVEL=INFO
       - DOCKER_ENV=true
-    
+
     volumes:
       - ./logs/instance4:/app/logs
       - ./backups:/app/backups
       - ./data:/app/data
-    
+
     networks:
       - discord-bot-network
-    
+
     healthcheck:
       test: ["CMD", "python", "-c", "print('healthy')"]
       interval: 30s
@@ -249,10 +253,9 @@ volumes:
       type: none
       o: bind
       device: ./data
-
 # Load Balancing 설정 정보
 # 모든 인스턴스가 동일한 기능을 수행하되, 사용자 ID 기반으로 분산 처리
 # Instance 1: User ID % 4 == 0
-# Instance 2: User ID % 4 == 1  
+# Instance 2: User ID % 4 == 1
 # Instance 3: User ID % 4 == 2
 # Instance 4: User ID % 4 == 3

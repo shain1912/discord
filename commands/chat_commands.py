@@ -2,12 +2,15 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from ai_handlers import get_gpt_response_streaming
-
+from env_manager import get_instance_config, should_handle_command
 async def setup_chat_commands(bot):
     """채팅 관련 명령어 설정"""
     
     @bot.tree.command(name="채팅", description="ChatGPT와 대화를 시작합니다.")
     async def chat(interaction: discord.Interaction, 질문: str):
+        instance_config = get_instance_config()
+        if not should_handle_command(interaction, instance_config):
+            return  # ❌ 내가 처리할 인스턴스가 아님 → 조용히 무시
         """ChatGPT와 대화하는 명령어 (스트리밍 방식)"""
         try:
             # 요청 가능 여부 확인
