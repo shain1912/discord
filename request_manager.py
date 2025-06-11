@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 CHAT_DAILY_LIMIT = int(os.getenv("CHAT_DAILY_LIMIT"))
 IMAGE_DAILY_LIMIT = int(os.getenv("IMAGE_DAILY_LIMIT"))
 VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT"))
-CHAT_COOLDOWN= os.getenv("CHAT_COOLDOWN")
-IMAGE_COOLDOWN= os.getenv("IMAGE_COOLDOWN")
-VIDEO_COOLDOWN= os.getenv("VIDEO_COOLDOWN")
+CHAT_COOLDOWN= int(os.getenv("CHAT_COOLDOWN"))
+IMAGE_COOLDOWN= int(os.getenv("IMAGE_COOLDOWN"))
+VIDEO_COOLDOWN= int(os.getenv("VIDEO_COOLDOWN"))
 class RequestManager:
     """간단한 요청 관리자 클래스"""
     

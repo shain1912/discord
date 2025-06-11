@@ -27,7 +27,7 @@ if not STABILITY_API_KEY:
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 async def get_gpt_response_streaming(bot, prompt: str, interaction) -> None:
-    """스트리밍 방식으로 GPT 응답 생성 (최적화된 버전) - ephemeral"""
+    """스트리밍 방식으로 GPT 응답 생성 (하나의 메시지를 계속 수정)"""
     if not openai_client:
         await interaction.followup.send("OpenAI API 키가 설정되지 않았습니다.", ephemeral=True)
         return
@@ -60,53 +60,51 @@ async def get_gpt_response_streaming(bot, prompt: str, interaction) -> None:
             if chunk.choices[0].delta.content:
                 content += chunk.choices[0].delta.content
                 
-                # 300자마다 메시지 업데이트 (더 자주 업데이트)
-                if len(content) - last_update >= 300:
+                # 300자마다 또는 처음 텍스트가 들어왔을 때 메시지 업데이트
+                if message is None:
+                    # 처음 메시지 전송 (일반 메시지로 변경)
+                    display_content = content if len(content) <= 2000 else content[:1950] + "\n\n**[계속 입력 중...]**"
+                    message = await interaction.followup.send(f"🤖 **ChatGPT 응답:**\n\n{display_content}")
                     last_update = len(content)
-                    if message is None:
-                        # 처음 메시지 전송 (ephemeral)
-                        if len(content) <= 2000:
-                            message = await interaction.followup.send(content, ephemeral=True)
-                        else:
-                            message = await interaction.followup.send(content[:2000], ephemeral=True)
-                    else:
-                        # 기존 메시지 업데이트 (ephemeral 메시지는 업데이트 불가)
-                        # 대신 새 ephemeral 메시지 전송
-                        try:
-                            if len(content) <= 2000:
-                                await interaction.followup.send(f"\n\n**[업데이트]**\n{content}", ephemeral=True)
-                            else:
-                                await interaction.followup.send(f"\n\n**[업데이트]**\n{content[:1900]}\n\n[계속...]", ephemeral=True)
-                        except discord.errors.HTTPException:
-                            # 업데이트 실패시 새 메시지 전송
-                            pass
+                    
+                elif len(content) - last_update >= 300:  # 300자마다 업데이트
+                    last_update = len(content)
+                    try:
+                        # 기존 메시지 수정
+                        display_content = content if len(content) <= 2000 else content[:1950] + "\n\n**[계속 입력 중...]**"
+                        await message.edit(content=f"🤖 **ChatGPT 응답:**\n\n{display_content}")
+                    except discord.errors.HTTPException:
+                        # 수정 실패시 무시하고 계속
+                        pass
         
-        # 최종 메시지 전송 (ephemeral)
-        if message is None:
-            # 전체 응답이 짧은 경우
-            if len(content) <= 2000:
-                await interaction.followup.send(content, ephemeral=True)
-            else:
-                await interaction.followup.send(content[:2000], ephemeral=True)
-        else:
-            # 최종 답변 전송
+        # 최종 메시지 수정
+        if message is not None:
             try:
                 if len(content) <= 2000:
-                    await interaction.followup.send(f"\n\n**[최종 답변]**\n{content}", ephemeral=True)
+                    # 전체 내용이 2000자 이하인 경우
+                    await message.edit(content=f"🤖 **ChatGPT 응답:**\n\n{content}")
                 else:
-                    await interaction.followup.send(f"\n\n**[최종 답변]**\n{content[:1900]}", ephemeral=True)
+                    # 2000자 초과인 경우 첫 번째 부분만 수정하고 나머지는 새 메시지로
+                    await message.edit(content=f"🤖 **ChatGPT 응답:**\n\n{content[:1950]}\n\n**[계속 ⬇️]**")
+                    
+                    # 나머지 내용을 새 메시지들로 전송
+                    remaining = content[1950:]
+                    chunk_num = 2
+                    while remaining:
+                        chunk = remaining[:1950]
+                        remaining = remaining[1950:]
+                        if remaining:  # 아직 더 있다면
+                            await interaction.followup.send(f"**[계속 {chunk_num}]**\n\n{chunk}\n\n**[계속 ⬇️]**")
+                        else:  # 마지막 청크
+                            await interaction.followup.send(f"**[계속 {chunk_num}]**\n\n{chunk}")
+                        chunk_num += 1
+                        
             except discord.errors.HTTPException:
-                pass
-            
-        # 2000자 초과시 나머지 전송 (ephemeral)
-        if len(content) > 2000:
-            remaining = content[2000:]
-            chunk_num = 2
-            while remaining:
-                chunk = remaining[:1900]  # ephemeral 메시지를 위해 약간 짧게
-                remaining = remaining[1900:]
-                await interaction.followup.send(f"**[계속 {chunk_num}]**\n{chunk}", ephemeral=True)
-                chunk_num += 1
+                # 수정 실패시 새 메시지로 전송
+                await interaction.followup.send(f"**[최종 응답]**\n\n{content[:2000]}")
+        else:
+            # message가 None인 경우 (매우 짧은 응답)
+            await interaction.followup.send(f"🤖 **ChatGPT 응답:**\n\n{content}")
                 
     except asyncio.TimeoutError:
         await interaction.followup.send("⏰ 응답 생성 시간이 초과되었습니다. 다시 시도해주세요.", ephemeral=True)
