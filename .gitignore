@@ -12,9 +12,14 @@ pip-delete-this-directory.txt
 
 # Environment variables
 .env
+.env.old
+.env.local
+.env.production
+.env.multi
 
 # Logs
 *.log
+logs/
 
 # Database
 *.db
@@ -28,3 +33,19 @@ pip-delete-this-directory.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# Backups and development files
+backups/
+dev_only/
+*_backup*.py
+*_old.py
+*_test.py
+
+# Docker development files
+docker-compose.override.yml
+.env.docker.local
+
+# Temporary files
+temp/
+tmp/
+*.tmp
