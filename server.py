@@ -10,7 +10,7 @@ import logging
 # 로컬 모듈 import
 from request_manager import RequestManager
 from channel_manager import setup_bot_events
-from ai_handlers import generate_image, get_gpt_response_streaming, generate_stability_image
+from ai_handlers import generate_image, get_gpt_response_streaming, generate_stability_image, generate_video
 from utils import setup_logging, split_message
 
 class MyBot(commands.Bot):
@@ -82,9 +82,8 @@ async def chat(interaction: discord.Interaction, 질문: str):
             await interaction.response.send_message(f"⚠️ {message}", ephemeral=True)
             return
 
-        # 초기 응답 전송
-        await interaction.response.defer(thinking=True)
-        await interaction.followup.send("🤔 ChatGPT가 답변을 생성하고 있습니다...")
+        # 초기 응답 전송 (ephemeral)
+        await interaction.response.send_message("🤔 ChatGPT가 답변을 생성하고 있습니다...", ephemeral=True)
         
         # 스트리밍 GPT 응답 생성
         await get_gpt_response_streaming(bot, 질문, interaction)
@@ -94,15 +93,13 @@ async def chat(interaction: discord.Interaction, 질문: str):
         await interaction.followup.send("채팅 응답 생성 중 오류가 발생했습니다.", ephemeral=True)
 
 @bot.tree.command(name="이미지", description="AI로 이미지를 생성하거나 변환합니다.")
-async def image(interaction: discord.Interaction, 파라미터1: str, 파라미터2: Optional[str] = None):
+async def image(interaction: discord.Interaction, 설명: str, 이미지: Optional[discord.Attachment] = None):
     """
     이미지 생성/변환 명령어
     
     사용 방법:
     1. 텍스트를 이미지로 변환: /이미지 "설명"
-    2. 이미지를 변환: /이미지 "설명" "이미지_url"
-    3. 이미지를 변환: /이미지 "이미지_url" "설명"
-    4. 이미지를 기반으로 새로운 이미지 생성: /이미지 "이미지_url"
+    2. 이미지를 변환: /이미지 "설명" + 이미지 첨부
     """
     try:
         # 요청 가능 여부 확인
@@ -113,53 +110,153 @@ async def image(interaction: discord.Interaction, 파라미터1: str, 파라미�
             await interaction.response.send_message(f"⚠️ {message}", ephemeral=True)
             return
 
-        # 파라미터 해석
-        설명, 이미지_url = _parse_image_parameters(파라미터1, 파라미터2)
+        # 이미지 첨부 파일 검증
+        if 이미지:
+            # 파일 크기 및 형식 검증
+            if 이미지.size > 4 * 1024 * 1024:  # 4MB 제한
+                await interaction.response.send_message("⚠️ 이미지 파일이 너무 큽니다. (4MB 이하만 가능)", ephemeral=True)
+                return
+            
+            # 이미지 형식 검증
+            allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+            if 이미지.content_type not in allowed_types:
+                await interaction.response.send_message(
+                    "⚠️ 지원되지 않는 이미지 형식입니다. (PNG, JPEG, WebP만 지원)", 
+                    ephemeral=True
+                )
+                return
 
-        # 이미지 생성 시작
-        await interaction.response.defer(thinking=True)
+        # 이미지 생성 시작 (ephemeral)
+        if 이미지:
+            processing_msg = f"🎨 이미지 변환 중입니다... (최대 60초 소요)\n🔄 업로드된 이미지를 설명에 따라 변환합니다!\n💡 팁: 간단한 설명일수록 빠르게 생성됩니다!"
+        else:
+            processing_msg = f"🎨 이미지 생성 중입니다... (최대 60초 소요)\n✨ 설명에 따라 새로운 이미지를 생성합니다!\n💡 팁: 간단한 설명일수록 빠르게 생성됩니다!"
         
-        processing_msg = (
-            "🎨 이미지 변환 중입니다... (최대 60초 소요)" if 이미지_url 
-            else "🎨 이미지 생성 중입니다... (최대 60초 소요)"
-        )
-        processing_msg += "\n💡 팁: 간단한 설명일수록 빠르게 생성됩니다!"
-        await interaction.followup.send(processing_msg)
+        await interaction.response.send_message(processing_msg, ephemeral=True)
 
-        # 이미지 생성
-        image_url = await generate_image(bot, 설명, 이미지_url)
+        # 이미지 생성 (Discord Attachment 객체 직접 전달)
+        image_url = await generate_image(bot, 설명, 이미지)
         
         if image_url.startswith("http"):
-            # 성공적으로 생성된 경우
+            # 성공적으로 생성된 경우 (ephemeral)
+            if 이미지:
+                embed_title = "🔄 이미지 변환 완료"
+                embed_color = 0xff6b6b  # 빨간색 (이미지 변환)
+            else:
+                embed_title = "🎨 이미지 생성 완료"
+                embed_color = 0x00ff00  # 초록색 (이미지 생성)
+            
             embed = discord.Embed(
-                title="🎨 생성된 이미지",
-                description=설명 if 설명 else "이미지 변환",
-                color=0x00ff00
+                title=embed_title,
+                description=설명,
+                color=embed_color
             )
             embed.set_image(url=image_url)
-            await interaction.followup.send(embed=embed)
+            await interaction.followup.send(embed=embed, ephemeral=True)
         else:
-            # 에러 메시지인 경우
-            await interaction.followup.send(f"❌ {image_url}")
+            # 에러 메시지인 경우 (ephemeral)
+            await interaction.followup.send(f"❌ {image_url}", ephemeral=True)
             
     except Exception as e:
         print(f"Image command error: {e}")
         await interaction.followup.send("이미지 생성 중 오류가 발생했습니다.", ephemeral=True)
 
-def _parse_image_parameters(param1: str, param2: Optional[str]) -> tuple[Optional[str], Optional[str]]:
-    """이미지 명령어 파라미터를 파싱하여 설명과 이미지 URL을 반환"""
-    설명 = None
-    이미지_url = None
+@bot.tree.command(name="비디오", description="MiniMax AI로 비디오 생성 (최대 5분 소요)")
+async def video(interaction: discord.Interaction, 설명: str):
+    """
+    MiniMax AI 비디오 생성
     
-    # 파라미터1이 URL인지 확인
-    if param1.startswith("http"):
-        이미지_url = param1
-        설명 = param2
-    else:
-        설명 = param1
-        이미지_url = param2 if param2 and param2.startswith("http") else None
-    
-    return 설명, 이미지_url
+    사용법:
+    /비디오 "고양이가 공원에서 뛰어노는 모습"
+    """
+    try:
+        # 요청 가능 여부 확인
+        can_request, message = await bot.request_manager.can_make_request(
+            interaction.user.id, 'video'
+        )
+        if not can_request:
+            await interaction.response.send_message(f"⚠️ {message}", ephemeral=True)
+            return
+
+        # 초기 응답 전송 (ephemeral)
+        processing_msg = "🎬 MiniMax AI로 비디오 생성 중... (최대 5분 소요)\n⏰ 비디오 생성은 시간이 오래 걸립니다. 잠시만 기다려주세요!\n📹 고품질 비디오를 제작하고 있습니다..."
+        await interaction.response.send_message(processing_msg, ephemeral=True)
+
+        # 주기적 업데이트 메시지 전송을 위한 태스크 생성
+        update_task = asyncio.create_task(_send_video_progress_updates(interaction))
+        
+        try:
+            # MiniMax 비디오 생성
+            result = await generate_video(설명)
+            
+            # 업데이트 태스크 취소
+            update_task.cancel()
+            try:
+                await update_task
+            except asyncio.CancelledError:
+                pass
+            
+            if result.startswith("http"):
+                # 성공적으로 생성된 경우 (ephemeral)
+                embed = discord.Embed(
+                    title="🎬 MiniMax AI 생성 비디오",
+                    description=설명,
+                    color=0x00c851
+                )
+                embed.add_field(
+                    name="📥 다운로드 링크", 
+                    value=f"[비디오 다운로드]({result})", 
+                    inline=False
+                )
+                embed.add_field(
+                    name="💡 안내", 
+                    value="링크를 클릭하여 비디오를 다운로드하세요.", 
+                    inline=False
+                )
+                embed.set_footer(text="Powered by MiniMax T2V-01 | 비디오 링크는 일정 시간 후 만료됩니다")
+                
+                await interaction.followup.send("✅ 비디오 생성이 완료되었습니다!", embed=embed, ephemeral=True)
+            else:
+                # 에러 메시지인 경우 (ephemeral)
+                await interaction.followup.send(f"❌ {result}", ephemeral=True)
+                
+        except Exception as e:
+            # 업데이트 태스크 취소
+            update_task.cancel()
+            try:
+                await update_task
+            except asyncio.CancelledError:
+                pass
+            raise e
+            
+    except Exception as e:
+        print(f"Video command error: {e}")
+        await interaction.followup.send("비디오 생성 중 오류가 발생했습니다.", ephemeral=True)
+
+async def _send_video_progress_updates(interaction: discord.Interaction):
+    """비디오 생성 중 주기적 업데이트 메시지 전송 (ephemeral)"""
+    try:
+        progress_messages = [
+            "🎬 비디오 생성 시작... (1/5분)",
+            "🎥 장면 구성 중... (2/5분)",
+            "🎨 비주얼 렌더링 중... (3/5분)",
+            "🎵 최종 처리 중... (4/5분)",
+            "⏰ 거의 완료... (5/5분)"
+        ]
+        
+        for i, message in enumerate(progress_messages):
+            await asyncio.sleep(60)  # 1분마다
+            try:
+                await interaction.followup.send(message, ephemeral=True)
+            except:
+                # 이미 완료되었을 수 있음
+                break
+                
+    except asyncio.CancelledError:
+        # 정상적으로 취소됨
+        pass
+
+
 
 @bot.tree.command(name="img", description="Stability AI로 빠른 이미지 생성 (이미지 첫부 가능)")
 async def img(interaction: discord.Interaction, 설명: str, 이미지: Optional[discord.Attachment] = None, 강도: Optional[float] = 0.7):
@@ -201,26 +298,21 @@ async def img(interaction: discord.Interaction, 설명: str, 이미지: Optional
                 )
                 return
 
-        # 초기 응답 전송
-        await interaction.response.defer(thinking=True)
-        
+        # 초기 응답 전송 (ephemeral)
         if 이미지:
             # Image-to-Image 모드
-            processing_msg = f"✨ Stability AI 이미지 변환 중... (강도: {강도})"
-            processing_msg += "\n🔄 업로드된 이미지를 설명에 따라 변환합니다!"
-            processing_msg += f"\n📊 강도 {int(강도*100)}% - 높을수록 원본 이미지 무시"
+            processing_msg = f"✨ Stability AI 이미지 변환 중... (강도: {강도})\n🔄 업로드된 이미지를 설명에 따라 변환합니다!\n📊 강도 {int(강도*100)}% - 높을수록 원본 이미지 무시"
         else:
             # Text-to-Image 모드
-            processing_msg = "⚡ Stability AI로 이미지 생성 중... (최대 45초)"
-            processing_msg += "\n✨ 고품질 이미지를 빠르게 생성합니다!"
+            processing_msg = "⚡ Stability AI로 이미지 생성 중... (최대 45초)\n✨ 고품질 이미지를 빠르게 생성합니다!"
         
-        await interaction.followup.send(processing_msg)
+        await interaction.response.send_message(processing_msg, ephemeral=True)
 
         # Stability AI 이미지 생성
         result = await generate_stability_image(설명, 이미지, 강도)
         
         if isinstance(result, bytes):
-            # 성공적으로 생성된 경우
+            # 성공적으로 생성된 경우 (ephemeral)
             import io
             file = discord.File(io.BytesIO(result), filename="stability_image.png")
             
@@ -242,10 +334,10 @@ async def img(interaction: discord.Interaction, 설명: str, 이미지: Optional
             embed.set_image(url="attachment://stability_image.png")
             embed.set_footer(text="Powered by Stability AI SD3.5 Turbo")
             
-            await interaction.followup.send(embed=embed, file=file)
+            await interaction.followup.send(embed=embed, file=file, ephemeral=True)
         else:
-            # 에러 메시지인 경우
-            await interaction.followup.send(f"❌ {result}")
+            # 에러 메시지인 경우 (ephemeral)
+            await interaction.followup.send(f"❌ {result}", ephemeral=True)
             
     except Exception as e:
         print(f"Stability AI command error: {e}")
@@ -253,7 +345,7 @@ async def img(interaction: discord.Interaction, 설명: str, 이미지: Optional
 
 @bot.tree.command(name="핑", description="봇의 응답 시간을 확인합니다.")
 async def ping(interaction: discord.Interaction):
-    """봇의 레이턴시를 확인하는 명령어"""
+    """봇의 레이턴시를 확인하는 명령어 (ephemeral)"""
     latency_ms = round(bot.latency * 1000)
     
     embed = discord.Embed(
@@ -262,7 +354,7 @@ async def ping(interaction: discord.Interaction):
         color=0x00ff00
     )
     
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.event
 async def on_command_error(ctx, error):

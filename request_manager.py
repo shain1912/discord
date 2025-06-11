@@ -2,9 +2,17 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, Tuple, Optional
 import logging
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 logger = logging.getLogger(__name__)
-
+CHAT_DAILY_LIMIT = int(os.getenv("CHAT_DAILY_LIMIT"))
+IMAGE_DAILY_LIMIT = int(os.getenv("IMAGE_DAILY_LIMIT"))
+VIDEO_DAILY_LIMIT = int(os.getenv("VIDEO_DAILY_LIMIT"))
+CHAT_COOLDOWN= os.getenv("CHAT_COOLDOWN")
+IMAGE_COOLDOWN= os.getenv("IMAGE_COOLDOWN")
+VIDEO_COOLDOWN= os.getenv("VIDEO_COOLDOWN")
 class RequestManager:
     """간단한 요청 관리자 클래스"""
     
@@ -16,8 +24,9 @@ class RequestManager:
         
         # 레이트 리미트 설정
         self.rate_limits = {
-            'chat': {'cooldown': 3, 'daily_limit': 1000},
-            'image': {'cooldown': 3, 'daily_limit': 50}
+            'chat': {'cooldown': CHAT_COOLDOWN, 'daily_limit': CHAT_DAILY_LIMIT},
+            'image': {'cooldown': IMAGE_COOLDOWN, 'daily_limit': IMAGE_DAILY_LIMIT},
+            'video': {'cooldown': VIDEO_COOLDOWN, 'daily_limit': VIDEO_DAILY_LIMIT}
         }
         self.queue_processor_task: Optional[asyncio.Task] = None
         
